@@ -1,0 +1,68 @@
+_format_version: "2.1"
+_transform: true
+
+services:
+  - name: kong-status
+    url: http://kong-service:8001
+    routes:
+      - name: status-route
+        paths:
+          - /status
+        strip_path: true
+    plugins:
+      - name: request-termination
+        config:
+          status_code: 200
+          message: "OK"
+
+  - name: expenseservice
+    url: http://expenseservice:9910
+    routes:
+      - name: expense-route
+        paths:
+          - /expense/v1
+        strip_path: false
+        preserve_host: false
+    plugins:
+      # (RE-ADDED) This route is now protected by your plugin
+      - name: custom-auth
+        config:
+          auth_service_url: "http://authservice:9898/auth/v1/ping"
+
+  - name: dsservice
+    url: http://dsservice:9000
+    routes:
+      - name: ds-route
+        paths:
+          - /v1/ds
+        strip_path: false
+        preserve_host: false
+    plugins:
+      # (RE-ADDED) This route is also protected
+      - name: custom-auth
+        config:
+          auth_service_url: "http://authservice:9898/auth/v1/ping"
+
+  - name: authservice
+    url: http://authservice:9898
+    routes:
+      - name: auth-route
+        paths:
+          - /auth/v1
+        strip_path: false
+        preserve_host: false
+    # No auth plugin here, as this is the auth service itself
+
+  - name: userservice
+    url: http://userservice:9810
+    routes:
+      - name: user-route
+        paths:
+          - /user/v1
+        strip_path: false
+        preserve_host: false
+    # (NOTE) Add the custom-auth plugin here too if you want to protect it
+    plugins:
+       - name: custom-auth
+         config:
+           auth_service_url: "http://authservice:9898/auth/v1/ping"
